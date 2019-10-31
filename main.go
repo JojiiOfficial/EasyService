@@ -17,7 +17,7 @@ type argT struct {
 var root = &cli.Command{
 	Argv: func() interface{} { return new(argT) },
 	Fn: func(ctx *cli.Context) error {
-		fmt.Println("Usage: ezservice <install/disable/start/stop>")
+		fmt.Println("Usage: ezservice <create/delete/modify>")
 		return nil
 	},
 }
