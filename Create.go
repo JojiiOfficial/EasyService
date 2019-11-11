@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/JojiiOfficial/SystemdGoService"
 	"github.com/mkideal/cli"
@@ -28,6 +31,19 @@ var createCMD = &cli.Command{
 			fmt.Println("Missing parameter value")
 			return nil
 		}
+		file := argv.ExecFile
+		if !strings.HasPrefix(file, "/") {
+			ex, err := os.Executable()
+			if err != nil {
+				log.Fatal(err)
+			}
+			dir := path.Dir(ex)
+			if strings.HasPrefix(file, "./") {
+				file = dir + "/" + file[2:]
+			} else {
+				file = dir + "/" + file
+			}
+		}
 		if _, er := os.Stat(argv.ExecFile); er != nil {
 			fmt.Println("File not found")
 			return nil
@@ -36,13 +52,16 @@ var createCMD = &cli.Command{
 			description = argv.Description
 		}
 		if SystemdGoService.SystemfileExists(argv.Name) {
-			fmt.Println("File already exists")
+			fmt.Println("Servicename already taken")
 			return nil
 		}
-		service := SystemdGoService.NewDefaultService(argv.Name, description, argv.ExecFile)
+		service := SystemdGoService.NewDefaultService(argv.Name, description, file)
 		err := service.Create()
 		if err != nil {
-			fmt.Println("Error creating servic: " + err.Error())
+			fmt.Println("Error creating service: " + err.Error())
+		} else {
+			SystemdGoService.DaemonReload()
+			fmt.Println("Service created successfully: \"/etc/systemd/" + SystemdGoService.NameToServiceFile(argv.Name) + "\"")
 		}
 		return nil
 	},
