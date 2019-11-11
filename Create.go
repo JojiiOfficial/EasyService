@@ -23,14 +23,16 @@ type createT struct {
 	Enable      bool   `cli:"e,enable" usage:"Enables the service after creating"`
 	Delete      bool   `cli:"!d,delete" usage:"Deletes a given service" dft:"false"`
 	Yes         bool   `cli:"y,yes" usage:"Skip confirm messages" dft:"false"`
+	Overwrite   bool   `cli:"o,overwrite" usage:"Overwrite an existing service" dft:"false"`
 }
 
 var createCMD = &cli.Command{
 	Name:    "create",
-	Aliases: []string{"create"},
+	Aliases: []string{"create", "service"},
 	Argv:    func() interface{} { return new(createT) },
 	Fn: func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*createT)
+		reader := bufio.NewReader(os.Stdin)
 		if os.Getgid() != 0 {
 			fmt.Println("You need to be root to run this command")
 			return nil
@@ -45,7 +47,6 @@ var createCMD = &cli.Command{
 				return nil
 			}
 			if !argv.Yes {
-				reader := bufio.NewReader(os.Stdin)
 				y, i := confirmInput("Do you really want to delete the service \""+argv.Name+"\" [y/n]> ", reader)
 				if i == -1 || !y {
 					return nil
@@ -91,10 +92,26 @@ var createCMD = &cli.Command{
 			description = argv.Description
 		}
 		if SystemdGoService.SystemfileExists(argv.Name) {
-			fmt.Println("Servicename already taken")
-			return nil
+			if !argv.Overwrite {
+				fmt.Println("Service already exists! Use -o to overwrite it")
+				return nil
+			}
+			if !argv.Yes {
+				y, i := confirmInput("Do you really want to overwrite the service \""+argv.Name+"\" [y/n]> ", reader)
+				if i == -1 || !y {
+					return nil
+				}
+			}
 		}
 		service := SystemdGoService.NewDefaultService(argv.Name, description, file)
+		service.Service.User = "root"
+		if len(argv.User) != 0 {
+			service.Service.User = argv.User
+		}
+		if len(argv.Group) != 0 {
+			service.Service.Group = argv.Group
+		}
+
 		err := service.Create()
 		if err != nil {
 			fmt.Println("Error creating service: " + err.Error())
