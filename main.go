@@ -25,6 +25,7 @@ var root = &cli.Command{
 func main() {
 	if err := cli.Root(root,
 		cli.Tree(help),
+		cli.Tree(createCMD),
 	).Run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
