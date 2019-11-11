@@ -1,2 +1,2 @@
 # EasySerivce
-A cli tool to create an systemd service easily
+A cli tool to create a systemd service easily from cli
