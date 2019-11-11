@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
@@ -18,6 +19,10 @@ type createT struct {
 	Description string `cli:"D,description" usage:"Specify the description of the service"`
 	User        string `cli:"U,user" usage:"Specify the user for the service"`
 	Group       string `cli:"G,group" usage:"Specify the group for the service"`
+	Start       bool   `cli:"s,start" usage:"Starts the service after creating"`
+	Enable      bool   `cli:"e,enable" usage:"Enables the service after creating"`
+	Delete      bool   `cli:"!d,delete" usage:"Deletes a given service" dft:"false"`
+	Yes         bool   `cli:"y,yes" usage:"Skip confirm messages" dft:"false"`
 }
 
 var createCMD = &cli.Command{
@@ -26,6 +31,40 @@ var createCMD = &cli.Command{
 	Argv:    func() interface{} { return new(createT) },
 	Fn: func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*createT)
+		if os.Getgid() != 0 {
+			fmt.Println("You need to be root to run this command")
+			return nil
+		}
+		if argv.Delete {
+			if len(argv.Name) == 0 {
+				fmt.Println("No name given!")
+				return nil
+			}
+			if _, err := os.Stat("/etc/systemd/system/" + SystemdGoService.NameToServiceFile(argv.Name)); err != nil {
+				fmt.Println("A service with this name doesn't exists")
+				return nil
+			}
+			if !argv.Yes {
+				reader := bufio.NewReader(os.Stdin)
+				y, i := confirmInput("Do you really want to delete the service \""+argv.Name+"\" [y/n]> ", reader)
+				if i == -1 || !y {
+					return nil
+				}
+			}
+			err := os.Remove("/etc/systemd/system/" + SystemdGoService.NameToServiceFile(argv.Name))
+			if err != nil {
+				fmt.Println("Error deleting file: " + err.Error())
+			} else {
+				fmt.Println("Service " + SystemdGoService.NameToServiceFile(argv.Name) + " deleted!")
+				err = SystemdGoService.DaemonReload()
+				if err != nil {
+					fmt.Println("Error reloading daemon: " + err.Error())
+					return nil
+				}
+				fmt.Println("Daemon reloaded successfully")
+			}
+			return nil
+		}
 		description := "An easy service for " + argv.Name
 		if len(argv.Name) == 0 || len(argv.ExecFile) == 0 {
 			fmt.Println("Missing parameter value")
@@ -62,6 +101,20 @@ var createCMD = &cli.Command{
 		} else {
 			SystemdGoService.DaemonReload()
 			fmt.Println("Service created successfully: \"/etc/systemd/" + SystemdGoService.NameToServiceFile(argv.Name) + "\"")
+			if argv.Enable {
+				err = service.Start()
+				if err != nil {
+					fmt.Println("Error starting service:", err.Error())
+					return nil
+				}
+				fmt.Println("Service started successfully")
+				err = service.Enable()
+				if err != nil {
+					fmt.Println("Error enabling service:", err.Error())
+					return nil
+				}
+				fmt.Println("Service enabled successfully")
+			}
 		}
 		return nil
 	},
