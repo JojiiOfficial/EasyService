@@ -21,49 +21,20 @@ type createT struct {
 	Group       string `cli:"G,group" usage:"Specify the group for the service"`
 	Start       bool   `cli:"s,start" usage:"Starts the service after creating"`
 	Enable      bool   `cli:"e,enable" usage:"Enables the service after creating"`
-	Delete      bool   `cli:"!d,delete" usage:"Deletes a given service" dft:"false"`
 	Yes         bool   `cli:"y,yes" usage:"Skip confirm messages" dft:"false"`
 	Overwrite   bool   `cli:"o,overwrite" usage:"Overwrite an existing service" dft:"false"`
 }
 
 var createCMD = &cli.Command{
 	Name:    "create",
-	Aliases: []string{"create", "service"},
+	Desc:    "Create a systemd service",
+	Aliases: []string{"creat", "c"},
 	Argv:    func() interface{} { return new(createT) },
 	Fn: func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*createT)
 		reader := bufio.NewReader(os.Stdin)
 		if os.Getgid() != 0 {
 			fmt.Println("You need to be root to run this command")
-			return nil
-		}
-		if argv.Delete {
-			if len(argv.Name) == 0 {
-				fmt.Println("No name given!")
-				return nil
-			}
-			if _, err := os.Stat("/etc/systemd/system/" + SystemdGoService.NameToServiceFile(argv.Name)); err != nil {
-				fmt.Println("A service with this name doesn't exists")
-				return nil
-			}
-			if !argv.Yes {
-				y, i := confirmInput("Do you really want to delete the service \""+argv.Name+"\" [y/n]> ", reader)
-				if i == -1 || !y {
-					return nil
-				}
-			}
-			err := os.Remove("/etc/systemd/system/" + SystemdGoService.NameToServiceFile(argv.Name))
-			if err != nil {
-				fmt.Println("Error deleting file: " + err.Error())
-			} else {
-				fmt.Println("Service " + SystemdGoService.NameToServiceFile(argv.Name) + " deleted!")
-				err = SystemdGoService.DaemonReload()
-				if err != nil {
-					fmt.Println("Error reloading daemon: " + err.Error())
-					return nil
-				}
-				fmt.Println("Daemon reloaded successfully")
-			}
 			return nil
 		}
 		description := "An easy service for " + argv.Name
@@ -117,7 +88,7 @@ var createCMD = &cli.Command{
 			fmt.Println("Error creating service: " + err.Error())
 		} else {
 			SystemdGoService.DaemonReload()
-			fmt.Println("Service created successfully: \"/etc/systemd/" + SystemdGoService.NameToServiceFile(argv.Name) + "\"")
+			fmt.Println("Service created successfully: \"" + serviceFolder + SystemdGoService.NameToServiceFile(argv.Name) + "\"")
 			if argv.Enable {
 				err = service.Start()
 				if err != nil {
