@@ -12,7 +12,11 @@ import (
 var help = cli.HelpCommand("display help information")
 
 const serviceFolder = "/etc/systemd/system/"
+<<<<<<< HEAD
 const version = "1.31"
+=======
+const version = "1"
+>>>>>>> 4934b030abbcc07a55561b127902ab3669236b52
 const binFile = "ezservice"
 
 type argT struct {
