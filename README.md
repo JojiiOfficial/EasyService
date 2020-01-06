@@ -23,6 +23,6 @@ to build it.
 `-e` Enable service afterwards<br>
 
 <b>Delete a service</b><br>
-`sudo ezservice service -N <name> -d -y`<br>
-`-d` Delete<br>
-`-y` Yes (to skip confirm message)<br>
+`sudo ezservice delete -N <name> -y`<br>
+`-N` Name<br>
+`-y` Yes (skip confirm message)<br>
