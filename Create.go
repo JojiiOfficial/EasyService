@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,8 +15,9 @@ import (
 
 type createT struct {
 	cli.Helper
+	ExecFile    string `cli:"F,file" usage:"Specify the ExecStart file" `
+	ExecCommand string `cli:"C,exec" usage:"Specify the ExecStart command" `
 	Name        string `cli:"*N,name" usage:"Specify the name of the service"`
-	ExecFile    string `cli:"*F,file" usage:"Specify the ExecStart file" `
 	Description string `cli:"D,description" usage:"Specify the description of the service"`
 	User        string `cli:"U,user" usage:"Specify the user for the service"`
 	Group       string `cli:"G,group" usage:"Specify the group for the service"`
@@ -23,6 +25,13 @@ type createT struct {
 	Enable      bool   `cli:"e,enable" usage:"Enables the service after creating"`
 	Yes         bool   `cli:"y,yes" usage:"Skip confirm messages" dft:"false"`
 	Overwrite   bool   `cli:"o,overwrite" usage:"Overwrite an existing service" dft:"false"`
+}
+
+func (argv *createT) Validate(ctx *cli.Context) error {
+	if (len(argv.ExecFile) == 0 && len(argv.ExecCommand) == 0) || (len(argv.ExecFile) > 0 && len(argv.ExecCommand) > 0) {
+		return errors.New("You need to set ONE of the Exec arguments. Type \"" + binFile + " create -h\" for more information")
+	}
+	return nil
 }
 
 var createCMD = &cli.Command{
@@ -38,26 +47,29 @@ var createCMD = &cli.Command{
 			return nil
 		}
 		description := "An easy service for " + argv.Name
-		if len(argv.Name) == 0 || len(argv.ExecFile) == 0 {
-			fmt.Println("Missing parameter value")
-			return nil
-		}
-		file := argv.ExecFile
-		if !strings.HasPrefix(file, "/") {
-			ex, err := os.Executable()
-			if err != nil {
-				log.Fatal(err)
+
+		var exec string
+		if len(argv.ExecFile) > 0 {
+			file := argv.ExecFile
+			if !strings.HasPrefix(file, "/") {
+				ex, err := os.Executable()
+				if err != nil {
+					log.Fatal(err)
+				}
+				dir := path.Dir(ex)
+				if strings.HasPrefix(file, "./") {
+					file = dir + "/" + file[2:]
+				} else {
+					file = dir + "/" + file
+				}
 			}
-			dir := path.Dir(ex)
-			if strings.HasPrefix(file, "./") {
-				file = dir + "/" + file[2:]
-			} else {
-				file = dir + "/" + file
+			if _, er := os.Stat(argv.ExecFile); er != nil {
+				fmt.Println("File not found")
+				return nil
 			}
-		}
-		if _, er := os.Stat(argv.ExecFile); er != nil {
-			fmt.Println("File not found")
-			return nil
+			exec = file
+		} else {
+			exec = argv.ExecCommand
 		}
 		if len(argv.Description) > 0 {
 			description = argv.Description
@@ -74,7 +86,7 @@ var createCMD = &cli.Command{
 				}
 			}
 		}
-		service := SystemdGoService.NewDefaultService(argv.Name, description, file)
+		service := SystemdGoService.NewDefaultService(argv.Name, description, exec)
 		service.Service.User = "root"
 		if len(argv.User) != 0 {
 			service.Service.User = argv.User

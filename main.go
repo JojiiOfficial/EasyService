@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	_ "github.com/JojiiOfficial/SystemdGoService"
 	"github.com/mkideal/cli"
@@ -11,19 +12,27 @@ import (
 var help = cli.HelpCommand("display help information")
 
 const serviceFolder = "/etc/systemd/system/"
+const version = "1"
+const binFile = "ezservice"
 
 type argT struct {
 	cli.Helper
+	Version bool `cli:"v,version" usage:"Displays the version of easyservice"`
 }
 
 var root = &cli.Command{
 	Argv: func() interface{} { return new(argT) },
 	Fn: func(ctx *cli.Context) error {
-		fmt.Println("Commands:\n\n" +
-			"  help     display help information" + "\n" +
-			"  create   Create a systemd service(aliases creat,c" + "\n" +
-			"  delete   Delete a systemd service(aliases del,d)",
-		)
+		argv := ctx.Argv().(*argT)
+		if argv.Version {
+			fmt.Println("EasyService V."+version, runtime.GOOS+"/"+runtime.GOARCH)
+		} else {
+			fmt.Println("Commands:\n\n" +
+				"  help     display help information" + "\n" +
+				"  create   Create a systemd service(aliases creat,c" + "\n" +
+				"  delete   Delete a systemd service(aliases del,d)",
+			)
+		}
 		return nil
 	},
 }
