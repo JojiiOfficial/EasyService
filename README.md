@@ -16,11 +16,14 @@ to build it.
 <b>Create a service</b><br>
 `sudo ezservice create -N <name> -F /path/to/execfile -G root -U root -s -e`<br>
 `-N` Name<br>
+`-D` Description<br>
 `-F` ExecStart file<br>
+`-C` ExecStart command<br>
 `-G` Group<br>
 `-U` User<br>
-`-n` Start service afterwards<br>
+`-s` Start service afterwards<br>
 `-e` Enable service afterwards<br>
+`-y` Yes (skip confirm message)<br>
 
 <b>Delete a service</b><br>
 `sudo ezservice delete -N <name> -y`<br>
