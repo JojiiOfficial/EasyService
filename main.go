@@ -12,7 +12,7 @@ import (
 var help = cli.HelpCommand("display help information")
 
 const serviceFolder = "/etc/systemd/system/"
-const version = "1.31"
+const version = "1.9"
 const binFile = "ezservice"
 
 type argT struct {
@@ -30,7 +30,8 @@ var root = &cli.Command{
 			fmt.Println("Commands:\n\n" +
 				"  help     display help information" + "\n" +
 				"  create   Create a systemd service(aliases creat,c" + "\n" +
-				"  delete   Delete a systemd service(aliases del,d)",
+				"  delete   Delete a systemd service(aliases del,d)" + "\n" +
+				"  rename   Rename a service(aliases ren,r)",
 			)
 		}
 		return nil

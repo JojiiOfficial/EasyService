@@ -15,21 +15,33 @@ import (
 
 type createT struct {
 	cli.Helper
-	ExecFile    string `cli:"F,file" usage:"Specify the ExecStart file" `
-	ExecCommand string `cli:"C,exec" usage:"Specify the ExecStart command" `
-	Name        string `cli:"*N,name" usage:"Specify the name of the service"`
-	Description string `cli:"D,description" usage:"Specify the description of the service"`
-	User        string `cli:"U,user" usage:"Specify the user for the service"`
-	Group       string `cli:"G,group" usage:"Specify the group for the service"`
-	Start       bool   `cli:"s,start" usage:"Starts the service after creating"`
-	Enable      bool   `cli:"e,enable" usage:"Enables the service after creating"`
-	Yes         bool   `cli:"y,yes" usage:"Skip confirm messages" dft:"false"`
-	Overwrite   bool   `cli:"o,overwrite" usage:"Overwrite an existing service" dft:"false"`
+	ExecFile    string                       `cli:"F,file" usage:"Specify the ExecStart file" `
+	ExecCommand string                       `cli:"C,exec" usage:"Specify the ExecStart command" `
+	Name        string                       `cli:"*N,name" usage:"Specify the name of the service"`
+	Description string                       `cli:"D,description" usage:"Specify the description of the service"`
+	User        string                       `cli:"U,user" usage:"Specify the user for the service"`
+	Group       string                       `cli:"G,group" usage:"Specify the group for the service"`
+	Type        SystemdGoService.ServiceType `cli:"T,type" usage:"Specify the type of the service"`
+	Start       bool                         `cli:"s,start" usage:"Starts the service after creating"`
+	Enable      bool                         `cli:"e,enable" usage:"Enables the service after creating"`
+	Yes         bool                         `cli:"y,yes" usage:"Skip confirm messages" dft:"false"`
+	Overwrite   bool                         `cli:"o,overwrite" usage:"Overwrite an existing service" dft:"false"`
 }
 
 func (argv *createT) Validate(ctx *cli.Context) error {
 	if (len(argv.ExecFile) == 0 && len(argv.ExecCommand) == 0) || (len(argv.ExecFile) > 0 && len(argv.ExecCommand) > 0) {
 		return errors.New("You need to set ONE of the Exec arguments. Type \"" + binFile + " create -h\" for more information")
+	}
+	types := []string{
+		(string)(SystemdGoService.Simple),
+		(string)(SystemdGoService.Exec),
+		(string)(SystemdGoService.Dbus),
+		(string)(SystemdGoService.Notify),
+		(string)(SystemdGoService.Forking),
+		(string)(SystemdGoService.Oneshot),
+	}
+	if len(argv.Type) == 0 || !isInStrArr((string)(argv.Type), types) {
+		return errors.New("Wrong type! Allowed types are:   simple, exec, dbus, notify, forking, oneshot")
 	}
 	return nil
 }
@@ -88,6 +100,7 @@ var createCMD = &cli.Command{
 		}
 		service := SystemdGoService.NewDefaultService(argv.Name, description, exec)
 		service.Service.User = "root"
+		service.Service.Type = argv.Type
 		if len(argv.User) != 0 {
 			service.Service.User = argv.User
 		}
